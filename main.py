@@ -23,7 +23,7 @@ current_top_count = config.TOP_COUNT
 current_processing_delay = config.PROCESSING_DELAY 
 
 def reload_config():
-    """Перезагружает модуль config.py и возвращает обновленные значения."""
+
     global current_top_count, current_processing_delay
     importlib.reload(config)
     current_top_count = config.TOP_COUNT
@@ -31,14 +31,14 @@ def reload_config():
     return config
 
 def render_progress_bar(current: int, total: int, length: int = 10) -> str:
-    """Создаёт визуальный прогресс-бар."""
+   
     if total == 0:
         return "□" * length
     filled = int(current / total * length)
     return "■" * filled + "□" * (length - filled)
 
 def render_log_text(state: Dict) -> str:
-    """Форматирует лог с прогресс-барами и последними сообщениями."""
+
     lines = state.get("messages", [])[-config.MAX_LINES_IN_LOG:] 
     total = state.get("total", 0)
     downloaded = state.get("downloaded", 0)
@@ -73,7 +73,7 @@ def render_log_text(state: Dict) -> str:
     return result
 
 def update_config_file(top_count: int, processing_delay: int):
-    """Обновляет значения TOP_COUNT и PROCESSING_DELAY в config.py."""
+
     config_path = "config.py"
     try:
         with open(config_path, "r", encoding="utf-8") as f:
@@ -92,7 +92,7 @@ def update_config_file(top_count: int, processing_delay: int):
         bot.send_message(config.ADMIN_CHAT_ID, f"💥 Ошибка при обновлении config.py: {str(e)}")
 
 def get_settings_menu() -> InlineKeyboardMarkup:
-    """Создаёт меню настроек с текущими значениями и кнопками для изменения TOP_COUNT и PROCESSING_DELAY."""
+
     global current_top_count, current_processing_delay
     return InlineKeyboardMarkup(
         inline_keyboard=[
@@ -113,7 +113,7 @@ def get_settings_menu() -> InlineKeyboardMarkup:
     )
 
 def get_main_menu() -> InlineKeyboardMarkup:
-    """Создаёт главное меню с кнопками 'Запостить ещё' и 'Изменить настройки'."""
+  
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
@@ -124,7 +124,7 @@ def get_main_menu() -> InlineKeyboardMarkup:
     )
 
 async def update_log_message(chat_id: int, text: str, menu: InlineKeyboardMarkup = None):
-    """Создаёт или обновляет сообщение с логом, сохраняя видимость предыдущих записей."""
+
     kb = menu or get_main_menu()
     entry = log_status.get(chat_id)
 
@@ -146,7 +146,7 @@ async def update_log_message(chat_id: int, text: str, menu: InlineKeyboardMarkup
                 pass
 
 def progress_callback_factory(chat_id: int):
-    """Создаёт функцию для обновления лога."""
+
     async def _cb(state: Dict):
         text = render_log_text(state)
         log_status[chat_id]["last_state"] = state  
@@ -154,7 +154,7 @@ def progress_callback_factory(chat_id: int):
     return _cb
 
 async def run_cycle_for_chat(chat_id: int):
-    """Запускает цикл обработки с текущим TOP_COUNT и PROCESSING_DELAY."""
+
     global current_top_count, current_processing_delay
     entry = log_status.setdefault(chat_id, {})
     if entry.get("busy"):
@@ -181,7 +181,7 @@ async def run_cycle_for_chat(chat_id: int):
 
 @dp.message(Command("start"))
 async def start_cmd(message: Message):
-    """Обрабатывает команду /start, показывая меню настроек."""
+
     if config.ADMIN_CHAT_ID and message.chat.id != config.ADMIN_CHAT_ID:
         await message.answer("🚫 Доступ ограничен.")
         return
@@ -191,7 +191,7 @@ async def start_cmd(message: Message):
 
 @dp.message(Command("run"))
 async def run_cmd(message: Message):
-    """Обрабатывает команду /run, запуская цикл обработки."""
+
     if config.ADMIN_CHAT_ID and message.chat.id != config.ADMIN_CHAT_ID:
         await message.answer("🚫 Доступ ограничен.")
         return
@@ -199,7 +199,7 @@ async def run_cmd(message: Message):
 
 @dp.callback_query(F.data == "restart")
 async def restart_btn(query: CallbackQuery):
-    """Обрабатывает кнопку 'Запостить ещё'."""
+  
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
     await query.answer("🔁 Запускаю новый цикл...")
@@ -207,7 +207,7 @@ async def restart_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "change_settings")
 async def change_settings_btn(query: CallbackQuery):
-    """Обрабатывает кнопку 'Изменить настройки'."""
+
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
     reload_config() 
@@ -222,7 +222,7 @@ async def change_settings_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "decrease_top_count")
 async def decrease_top_count_btn(query: CallbackQuery):
-    """Уменьшает TOP_COUNT на 1 и обновляет config.py."""
+
     global current_top_count
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
@@ -242,7 +242,7 @@ async def decrease_top_count_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "increase_top_count")
 async def increase_top_count_btn(query: CallbackQuery):
-    """Увеличивает TOP_COUNT на 1 и обновляет config.py."""
+
     global current_top_count
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
