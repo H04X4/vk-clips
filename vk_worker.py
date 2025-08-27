@@ -37,7 +37,7 @@ class VKWorker:
 
     @staticmethod
     def _ydl_download(url: str, out_dir: str) -> Optional[Tuple[str, Dict]]:
-        """Synchronous download via yt-dlp; run in a separate thread via asyncio.to_thread."""
+      
         ydl_opts = {
             "format": "best",
             "outtmpl": os.path.join(out_dir, "%(id)s.%(ext)s"),
@@ -68,7 +68,7 @@ class VKWorker:
 
     @staticmethod
     def _uniqueize_video(path: str) -> Optional[str]:
-        """Synchronous video uniqueization via ffmpeg; run in a separate thread."""
+     
         try:
             base, ext = os.path.splitext(path)
             unique_path = f"{base}_unique{ext}"
@@ -82,7 +82,7 @@ class VKWorker:
                 '-y', unique_path
             ], check=True, capture_output=True)
             if os.path.exists(unique_path) and os.path.getsize(unique_path) > 0:
-                os.remove(path)  # Remove original after successful uniqueization
+                os.remove(path)  
                 return unique_path
             return None
         except Exception as e:
@@ -105,12 +105,12 @@ class VKWorker:
                 response = await self._api_post(session, "shortVideo.create", {"file_size": str(file_size)})
                 if "error" in response and response["error"]["error_code"] == 9:
                     raise RuntimeError("Flood control: слишком много запросов к API. Программа остановлена.")
-                await asyncio.sleep(2)  # Delay between API requests to avoid rate limits
+                await asyncio.sleep(2) 
                 return response
             except Exception as e:
                 if "Flood control" in str(e) and attempt < max_retries:
                     await asyncio.sleep(retry_delay)
-                    retry_delay *= 2  # Exponential backoff
+                    retry_delay *= 2  
                     continue
                 raise
 
@@ -188,15 +188,6 @@ class VKWorker:
         os.makedirs(VIDEOS_DIR, exist_ok=True)
 
     async def run_cycle(self, progress_cb):
-        """
-        Main cycle:
-        1) Clean videos directory
-        2) Fetch top videos
-        3) Download videos
-        4) Uniqueize videos
-        5) Upload to VK Clips (create -> upload -> sleep -> edit -> publish)
-        progress_cb(state: dict) is called at each step
-        """
         state = {
             "stage": "init",
             "total": 0,
@@ -214,7 +205,7 @@ class VKWorker:
         await progress_cb(state)
 
         async with aiohttp.ClientSession() as session:
-            # 1) Fetch top videos
+
             state["stage"] = "fetch_top"
             await progress_cb(state)
             items = await self.get_top_videos(session, TOP_COUNT)
@@ -227,7 +218,7 @@ class VKWorker:
             state["messages"].append(f"📥 Найдено в топе: {state['total']}")
             await progress_cb(state)
 
-            # 2) Download videos
+
             enriched = []
             for idx, item in enumerate(items, 1):
                 link = self.link_from_item(item)
@@ -247,7 +238,7 @@ class VKWorker:
                     state["messages"].append(f"✅ Скачано: {os.path.basename(path)}")
                     if meta and meta.get("title"):
                         item = {**item, "title": meta.get("title")}
-                    # 3) Uniqueize video
+    
                     state["messages"].append(f"🔄 Уникализация видео: {os.path.basename(path)}")
                     await progress_cb(state)
                     unique_path, unique_err = await self.uniqueize_one(path)
@@ -261,7 +252,7 @@ class VKWorker:
                         enriched.append({"item": item, "link": link, "path": unique_path, "status": "uniqueized", "err": None, "title": title})
                 await progress_cb(state)
 
-            # 4) Upload videos
+
             for idx, rec in enumerate(enriched, 1):
                 if not rec["path"]:
                     continue
@@ -279,7 +270,7 @@ class VKWorker:
                         if "error" in create_resp and create_resp["error"]["error_code"] == 9:
                             state["messages"].append("🛑 Flood control: остановка из-за ограничения VK API.")
                             await progress_cb(state)
-                            return state  # Stop immediately on flood control
+                            return state 
                         raise RuntimeError(f"Ошибка создания: {create_resp}")
 
                     upload_url = create_resp["response"]["upload_url"]
@@ -303,7 +294,7 @@ class VKWorker:
                     if "Flood control" in str(e):
                         state["messages"].append("🛑 Flood control: программа остановлена.")
                         await progress_cb(state)
-                        return state  # Stop immediately on flood control
+                        return state  
                     await progress_cb(state)
 
         state["stage"] = "done"
