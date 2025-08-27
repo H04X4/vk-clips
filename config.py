@@ -1,5 +1,5 @@
 # VK
-ACCESS_TOKEN = "vk1.a.-Lt8bekF1RjgFJlRO1Bhv9k6wQxWENiJOXsM_c_uQIGGyp7jjEIt2kmJol4RKBKwvZEODBAGIVg"
+ACCESS_TOKEN = "vk1.a.-"
 API_VERSION = "5.249"
 PROCESSING_DELAY = 40  # сек, подождать обработку ролика перед edit/publish
 
