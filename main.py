@@ -18,10 +18,9 @@ bot = Bot(
 dp = Dispatcher()
 worker = VKWorker()
 
-# Хранилище состояния: chat_id -> {"message_id": int, "last_text": str, "busy": bool, "last_state": dict, "use_auto_delay": bool}
 log_status: Dict[int, Dict] = {}
-current_top_count = config.TOP_COUNT  # Текущее значение TOP_COUNT
-current_processing_delay = config.PROCESSING_DELAY  # Текущее значение PROCESSING_DELAY
+current_top_count = config.TOP_COUNT 
+current_processing_delay = config.PROCESSING_DELAY 
 
 def reload_config():
     """Перезагружает модуль config.py и возвращает обновленные значения."""
@@ -40,7 +39,7 @@ def render_progress_bar(current: int, total: int, length: int = 10) -> str:
 
 def render_log_text(state: Dict) -> str:
     """Форматирует лог с прогресс-барами и последними сообщениями."""
-    lines = state.get("messages", [])[-config.MAX_LINES_IN_LOG:]  # Берем последние N сообщений
+    lines = state.get("messages", [])[-config.MAX_LINES_IN_LOG:] 
     total = state.get("total", 0)
     downloaded = state.get("downloaded", 0)
     published = state.get("published", 0)
@@ -64,12 +63,11 @@ def render_log_text(state: Dict) -> str:
         f"{'─'*17}\n"
     )
 
-    # Экранируем HTML и форматируем
+    
     body = "\n".join(f"{html.escape(line)}" for line in lines)
 
     result = f"{header}<pre>{body}</pre>"
 
-    # Ограничение длины для Telegram
     if len(result) > 3900:
         result = "…\n" + result[-3800:]
     return result
@@ -81,14 +79,14 @@ def update_config_file(top_count: int, processing_delay: int):
         with open(config_path, "r", encoding="utf-8") as f:
             content = f.read()
         
-        # Заменяем TOP_COUNT
+   
         content = re.sub(r"TOP_COUNT\s*=\s*\d+", f"TOP_COUNT = {top_count}", content)
-        # Заменяем PROCESSING_DELAY
+
         content = re.sub(r"PROCESSING_DELAY\s*=\s*\d+", f"PROCESSING_DELAY = {processing_delay}", content)
         
         with open(config_path, "w", encoding="utf-8") as f:
             f.write(content)
-        reload_config()  # Перезагружаем конфиг после изменения
+        reload_config() 
     except Exception as e:
         print(f"Ошибка при обновлении config.py: {e}")
         bot.send_message(config.ADMIN_CHAT_ID, f"💥 Ошибка при обновлении config.py: {str(e)}")
@@ -134,7 +132,7 @@ async def update_log_message(chat_id: int, text: str, menu: InlineKeyboardMarkup
         msg = await bot.send_message(chat_id, text, reply_markup=kb)
         log_status[chat_id] = {"message_id": msg.message_id, "last_text": text, "busy": False, "last_state": {}, "use_auto_delay": False}
     else:
-        # Обновляем, только если текст изменился
+      
         if text != entry.get("last_text"):
             try:
                 await bot.edit_message_text(
@@ -151,7 +149,7 @@ def progress_callback_factory(chat_id: int):
     """Создаёт функцию для обновления лога."""
     async def _cb(state: Dict):
         text = render_log_text(state)
-        log_status[chat_id]["last_state"] = state  # Сохраняем последнее состояние
+        log_status[chat_id]["last_state"] = state  
         await update_log_message(chat_id, text)
     return _cb
 
@@ -165,11 +163,11 @@ async def run_cycle_for_chat(chat_id: int):
 
     entry["busy"] = True
     try:
-        reload_config()  # Перезагружаем конфиг перед запуском
-        worker.TOP_COUNT = current_top_count  # Обновляем TOP_COUNT
-        # Устанавливаем задержку: авто, если выбрано, или текущую
+        reload_config()  
+        worker.TOP_COUNT = current_top_count 
+        
         if entry.get("use_auto_delay", False) and current_top_count > 0:
-            worker.PROCESSING_DELAY = 3600 // current_top_count  # 3600 секунд (1 час) / кол-во видео
+            worker.PROCESSING_DELAY = 3600 // current_top_count  
             await bot.send_message(chat_id, f"⏱ Используется авто-задержка: {worker.PROCESSING_DELAY}с на видео")
         else:
             worker.PROCESSING_DELAY = current_processing_delay
@@ -179,7 +177,7 @@ async def run_cycle_for_chat(chat_id: int):
         await bot.send_message(chat_id, f"💥 Ошибка: {str(e)}")
     finally:
         entry["busy"] = False
-        entry["use_auto_delay"] = False  # Сбрасываем авто-задержку после цикла
+        entry["use_auto_delay"] = False 
 
 @dp.message(Command("start"))
 async def start_cmd(message: Message):
@@ -187,7 +185,7 @@ async def start_cmd(message: Message):
     if config.ADMIN_CHAT_ID and message.chat.id != config.ADMIN_CHAT_ID:
         await message.answer("🚫 Доступ ограничен.")
         return
-    reload_config()  # Перезагружаем конфиг для актуальных значений
+    reload_config() 
     text = "🤖 Бот готов! Используйте /run или кнопку «Запостить ещё» для запуска цикла.\n⚙️ Настройки:"
     await update_log_message(message.chat.id, text, get_settings_menu())
 
@@ -212,7 +210,7 @@ async def change_settings_btn(query: CallbackQuery):
     """Обрабатывает кнопку 'Изменить настройки'."""
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
-    reload_config()  # Перезагружаем конфиг для актуальных значений
+    reload_config() 
     await query.answer("⚙️ Открываю настройки")
     text = render_log_text(log_status.get(query.message.chat.id, {}).get("last_state", {}))
     await bot.edit_message_text(
@@ -261,7 +259,7 @@ async def increase_top_count_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "decrease_delay")
 async def decrease_delay_btn(query: CallbackQuery):
-    """Уменьшает PROCESSING_DELAY на 20 секунд и обновляет config.py."""
+
     global current_processing_delay
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
@@ -281,7 +279,7 @@ async def decrease_delay_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "increase_delay")
 async def increase_delay_btn(query: CallbackQuery):
-    """Увеличивает PROCESSING_DELAY на 20 секунд и обновляет config.py."""
+
     global current_processing_delay
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
@@ -298,7 +296,7 @@ async def increase_delay_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "auto_delay")
 async def auto_delay_btn(query: CallbackQuery):
-    """Устанавливает флаг для автоматической задержки (1 час / TOP_COUNT)."""
+
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
     if current_top_count == 0:
@@ -317,7 +315,7 @@ async def auto_delay_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "back_to_main")
 async def back_to_main_btn(query: CallbackQuery):
-    """Возвращает к главному меню."""
+    
     if config.ADMIN_CHAT_ID and query.message.chat.id != config.ADMIN_CHAT_ID:
         return
     await query.answer("🔙 Возвращаюсь к главному меню")
@@ -331,11 +329,11 @@ async def back_to_main_btn(query: CallbackQuery):
 
 @dp.callback_query(F.data == "noop")
 async def noop_btn(query: CallbackQuery):
-    """Пустой callback для неинтерактивных кнопок."""
+
     await query.answer()
 
 async def main():
-    """Запускает бота."""
+
     try:
         await dp.start_polling(bot, allowed_updates=["message", "callback_query"])
     except Exception:
